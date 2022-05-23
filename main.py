@@ -8,17 +8,17 @@ import webbrowser
 import pandas as pd
 import multiprocessing as mp
 
-from PyPDF2.errors import PdfReadError
-
-
 def repare_pdf(file):
     pdf = file.split('/')
     print("Repairing following PDF: {0}".format(pdf[-1]))
-    pdf = pikepdf.Pdf.open(file)
-    pdf.save(file + '.tmp')
-    pdf.close()
-    os.unlink(file)
-    os.rename(file + '.tmp', file)
+    try:
+        pdf = pikepdf.Pdf.open(file)
+        pdf.save(file + '.tmp')
+        pdf.close()
+        os.unlink(file)
+        os.rename(file + '.tmp', file)
+    except:
+        print(f'Cannot repair following PDF {[pdf[-1]]}')
 
 
 def generate_html(dataframe: pd.DataFrame, *args):
@@ -51,18 +51,40 @@ def generate_html(dataframe: pd.DataFrame, *args):
     """
     return html
 
+def check_pdf(keyword, path):
+    for_removal = []
+    pdf = path.split('/')
+
+    try:
+        f = open(path, 'rb')
+        reader = PyPDF2.PdfFileReader(f)
+    except:
+        repare_pdf(path)
+
+    try:
+        f = open(path, 'rb')
+        reader = PyPDF2.PdfFileReader(f)
+        pages = reader.numPages
+        page = reader.getPage(0)
+        text = page.extractText()
+        f.close()
+        print(f'All Checks Passed for [{pdf[-1]}]')
+
+    except:
+        print(f'Checks Failed for [{pdf[-1]}]. Removing PDF from the list.')
+        for_removal.append(path)
+
+    return for_removal
+
 
 def search_pdf(keyword, path):
     # Reader initiation
     f = open(path, 'rb')
-    try:
-        reader = PyPDF2.PdfFileReader(f)
-    except PdfReadError:
-        repare_pdf(path)
-        f = open(path, 'rb')
-        reader = PyPDF2.PdfFileReader(f)
+    reader = PyPDF2.PdfFileReader(f)
 
     pdf = path.split('/')
+    print(f'Searching in [{pdf[-1]}]')
+
     results = []
     for p in range(reader.numPages):
         print(f'Checking page {p} in [{pdf[-1]}]')
@@ -83,14 +105,14 @@ def search_pdf(keyword, path):
                 results.append(result)
 
     f.close()
-    print(f'All of {reader.numPages} pages checked.')
+    print(f'All of {reader.numPages} pages checked in [{pdf[-1]}]')
 
     return results
 
 
-def run_parallel_pool(keyword, pdfs):
+def run_parallel_pool(func, keyword, pdfs):
     with mp.Pool(mp.cpu_count()) as pool:
-        res = pool.starmap(search_pdf, zip([keyword] * len(pdfs), pdfs))
+        res = pool.starmap(eval(func), zip([keyword] * len(pdfs), pdfs))
         pool.close()
     return res
 
@@ -98,7 +120,7 @@ def run_parallel_pool(keyword, pdfs):
 if __name__ == "__main__":
     keyword = 'Terraform'
     # folder = 'pdfs'
-    folder = '/media/p51/Data/Data/Library/_Computer_Science/_Projects_Selection/'
+    folder = '/media/p51/Data/Data/Library/_Computer_Science/'
     parallel_processing = True
 
     # Measure time
@@ -106,22 +128,32 @@ if __name__ == "__main__":
 
     # List all available PDFs in specified folder
     pdfs = [os.path.abspath(os.path.join(root, name))
-            for root, dirs, files in os.walk(folder) for name in files if name.endswith('pdf')]
+            for root, dirs, files in os.walk(folder) for name in files if name.endswith('.pdf')]
 
-    # Search keywords in PDFs
     if parallel_processing:
-        results_flat = [item for sublist in run_parallel_pool(keyword, pdfs) for item in sublist]
+        # PDFs checks
+        pdfs_to_remove = [item for sublist in run_parallel_pool('check_pdf', keyword, pdfs) for item in sublist]
+        pdfs_passed = [pdf for pdf in pdfs if not pdf in pdfs_to_remove or pdfs_to_remove.remove(pdf)]
+
+        # Search keywords in PDFs
+        results_flat = [item for sublist in run_parallel_pool('search_pdf',keyword, pdfs_passed) for item in sublist]
     else:
-        results_flat = [item for sublist in [search_pdf(keyword, path) for path in pdfs] for item in sublist]
+        # PDFs checks
+        pdfs_to_remove = [item for sublist in [check_pdf(keyword, path) for path in pdfs] for item in sublist]
+        pdfs_passed = [pdf for pdf in pdfs if not pdf in pdfs_to_remove or pdfs_to_remove.remove(pdf)]
+
+        # Search keywords in PDFs
+        results_flat = [item for sublist in [search_pdf(keyword, path) for path in pdfs_passed] for item in sublist]
 
     results_df = pd.DataFrame(results_flat)
 
     # Generate and save HTML
     html = generate_html(results_df, keyword)
-    open("results/search_results.html", "w").write(html)
-    webbrowser.open("results/search_results.html")
+    open(f"{keyword}_search_results.html", "w").write(html)
+    webbrowser.open(f"{keyword}_search_results.html")
 
     # Evaluate time
+    print(f"\n'{keyword}' Keyword Search in {len(pdfs_passed)} Books Complete!")
     t1 = time.time() - t0
     print("Time elapsed (s): ", round(t1, 0))
     print("Time elapsed (min): ", round(t1/60, 1))
