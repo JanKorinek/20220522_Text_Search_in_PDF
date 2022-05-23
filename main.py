@@ -8,10 +8,17 @@ import webbrowser
 import pandas as pd
 import multiprocessing as mp
 
-def repare_pdf(file):
+from typing import List, Dict, Any
+
+def repare_pdf(file: str):
+    """Repair PDF by loading and saving via pikepdf library.
+
+    :param file: PDF location
+    """
     pdf = file.split('/')
     print("Repairing following PDF: {0}".format(pdf[-1]))
     try:
+        # Load and save PDF
         pdf = pikepdf.Pdf.open(file)
         pdf.save(file + '.tmp')
         pdf.close()
@@ -21,11 +28,19 @@ def repare_pdf(file):
         print(f'Cannot repair following PDF {[pdf[-1]]}')
 
 
-def generate_html(dataframe: pd.DataFrame, *args):
-    # get the table HTML from the dataframe
+def generate_html(dataframe: pd.DataFrame, *args) -> str:
+    """Generate HTML table of the search results with usage of jQuery template
+    script.
+
+    :param dataframe: Keyword search results
+    :param args: Can pass e.g. keyword variable
+    :return: Generated HTML table code
+    """
+    # Get the table HTML from the dataframe
     table_html = dataframe.to_html(table_id='table', escape=False)
-    # construct the complete HTML with jQuery Data tables
-    # You can disable paging or enable y scrolling on lines 20 and 21 respectively
+
+    # Construct the complete HTML with jQuery Data tables
+    # Possible to disable paging or enable y scrolling on lines 20 and 21 respectively
     html = f"""
     <html>
     <header>
@@ -51,7 +66,16 @@ def generate_html(dataframe: pd.DataFrame, *args):
     """
     return html
 
-def check_pdf(keyword, path):
+def check_pdf(path: str,
+              keyword: str = 'placeholder',
+              ) -> List[str]:
+    """Check PDF if it's compatible with PyPDF2 library. If not, then is excluded
+    from further processing.
+
+    :param path: PDF location
+    :param keyword: Keyword to search (in this case generalized placeholder)
+    :return: Returns PDF location if it's not compatible with PyPDF2
+    """
     for_removal = []
     pdf = path.split('/')
 
@@ -69,19 +93,25 @@ def check_pdf(keyword, path):
         text = page.extractText()
         f.close()
         print(f'All Checks Passed for [{pdf[-1]}]')
-
     except:
-        print(f'Checks Failed for [{pdf[-1]}]. Removing PDF from the list.')
+        print(f'Checks Failed for [{pdf[-1]}]. PDF marked for removal from the list.')
         for_removal.append(path)
 
     return for_removal
 
 
-def search_pdf(keyword, path):
+def search_pdf(path: str,
+               keyword: str,
+               ) -> List[Dict[str, Any]]:
+    """Search specified keyword(s) within PDF.
+
+    :param path: PDF location
+    :param keyword: Keyword to search within PDF
+    :return: Matched keyword file, page, sentence and file path
+    """
     # Reader initiation
     f = open(path, 'rb')
     reader = PyPDF2.PdfFileReader(f)
-
     pdf = path.split('/')
     print(f'Searching in [{pdf[-1]}]')
 
@@ -89,6 +119,7 @@ def search_pdf(keyword, path):
     for p in range(reader.numPages):
         print(f'Checking page {p} in [{pdf[-1]}]')
         page = reader.getPage(p)
+
         try:
             text = page.extractText()
         except:
@@ -103,24 +134,34 @@ def search_pdf(keyword, path):
                     'path': f'<a href="' + path + '" target="_blank">open file</a>'
                 }
                 results.append(result)
-
     f.close()
     print(f'All of {reader.numPages} pages checked in [{pdf[-1]}]')
 
     return results
 
 
-def run_parallel_pool(func, keyword, pdfs):
+def run_parallel_pool(func: str,
+                      pdfs: List[str],
+                      keyword: str,
+                      ) -> List[Any]:
+    """Creates pool for function distribution to all available cores.
+
+    :param func: Function for distribution
+    :param pdfs: List of PDFs to process
+    :param keyword: Keyword to search within PDF
+    :return: Processed PDFs
+    """
     with mp.Pool(mp.cpu_count()) as pool:
-        res = pool.starmap(eval(func), zip([keyword] * len(pdfs), pdfs))
+        res = pool.starmap(eval(func), zip(pdfs, [keyword] * len(pdfs)))
         pool.close()
+
     return res
 
 
 if __name__ == "__main__":
-    keyword = 'Terraform'
-    # folder = 'pdfs'
-    folder = '/media/p51/Data/Data/Library/_Computer_Science/'
+    keyword = 'cloud'
+    folder = 'pdfs'
+    # folder = '/media/p51/Data/Data/Library/_Computer_Science/'
     parallel_processing = True
 
     # Measure time
@@ -132,14 +173,18 @@ if __name__ == "__main__":
 
     if parallel_processing:
         # PDFs checks
-        pdfs_to_remove = [item for sublist in run_parallel_pool('check_pdf', keyword, pdfs) for item in sublist]
+        pdfs_to_remove = [item for sublist in run_parallel_pool('check_pdf', pdfs, keyword) for item in sublist]
+
+        # Removal of incompatible PDFs
         pdfs_passed = [pdf for pdf in pdfs if not pdf in pdfs_to_remove or pdfs_to_remove.remove(pdf)]
 
         # Search keywords in PDFs
-        results_flat = [item for sublist in run_parallel_pool('search_pdf',keyword, pdfs_passed) for item in sublist]
+        results_flat = [item for sublist in run_parallel_pool('search_pdf', pdfs_passed, keyword) for item in sublist]
     else:
         # PDFs checks
-        pdfs_to_remove = [item for sublist in [check_pdf(keyword, path) for path in pdfs] for item in sublist]
+        pdfs_to_remove = [item for sublist in [check_pdf(path, keyword) for path in pdfs] for item in sublist]
+
+        # Removal of incompatible PDFs
         pdfs_passed = [pdf for pdf in pdfs if not pdf in pdfs_to_remove or pdfs_to_remove.remove(pdf)]
 
         # Search keywords in PDFs
@@ -150,6 +195,8 @@ if __name__ == "__main__":
     # Generate and save HTML
     html = generate_html(results_df, keyword)
     open(f"{keyword}_search_results.html", "w").write(html)
+    print('Report successfully generated into HTML.')
+
     webbrowser.open(f"{keyword}_search_results.html")
 
     # Evaluate time
