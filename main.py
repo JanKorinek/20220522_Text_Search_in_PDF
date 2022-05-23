@@ -4,11 +4,40 @@ import os
 import PyPDF2
 import pikepdf
 import webbrowser
+import yaml
+import logging
 
 import pandas as pd
 import multiprocessing as mp
 
+from logging.config import dictConfig
 from typing import List, Dict, Any
+
+
+def init_logger():
+    """Function responsible for logger creation.
+
+    :return: Initialized logger
+    """
+    # Initialize logger
+    with open('logger_conf.yaml') as fin:
+        config = yaml.load(fin, Loader=yaml.FullLoader)
+    dictConfig(config)
+    logger = logging.getLogger()
+
+    return logger
+
+def runtime_eval(start: float) -> tuple[Any, Any, Any]:
+    """Measure overall runtime of the script.
+
+    :param start: Time when scrip started
+    :return: Hours, minutes and seconds floats
+    """
+    # Evaluate time
+    m, s = divmod(time.time() - start, 60)
+    h, m = divmod(m, 60)
+
+    return (h, m, round(s,0))
 
 def repare_pdf(file: str):
     """Repair PDF by loading and saving via pikepdf library.
@@ -16,7 +45,7 @@ def repare_pdf(file: str):
     :param file: PDF location
     """
     pdf = file.split('/')
-    print("Repairing following PDF: {0}".format(pdf[-1]))
+    logger.info("Repairing following PDF: {0}".format(pdf[-1]))
     try:
         # Load and save PDF
         pdf = pikepdf.Pdf.open(file)
@@ -25,7 +54,7 @@ def repare_pdf(file: str):
         os.unlink(file)
         os.rename(file + '.tmp', file)
     except:
-        print(f'Cannot repair following PDF {[pdf[-1]]}')
+        logger.info(f'Cannot repair following PDF {[pdf[-1]]}')
 
 
 def generate_html(dataframe: pd.DataFrame, *args) -> str:
@@ -92,10 +121,10 @@ def check_pdf(path: str,
         page = reader.getPage(0)
         text = page.extractText()
         f.close()
-        print(f'All Checks Passed for [{pdf[-1]}]')
+        logger.info(f'All Checks Passed for [{pdf[-1]}]')
     except:
-        print(f'Checks Failed for [{pdf[-1]}]. PDF marked for removal from the list.')
         for_removal.append(path)
+        logger.info(f'Checks Failed for [{pdf[-1]}]. PDF marked for removal from the list.')
 
     return for_removal
 
@@ -113,11 +142,11 @@ def search_pdf(path: str,
     f = open(path, 'rb')
     reader = PyPDF2.PdfFileReader(f)
     pdf = path.split('/')
-    print(f'Searching in [{pdf[-1]}]')
+    logger.info(f'Searching in [{pdf[-1]}]')
 
     results = []
     for p in range(reader.numPages):
-        print(f'Checking page {p} in [{pdf[-1]}]')
+        logger.info(f'Checking page {p} in [{pdf[-1]}]')
         page = reader.getPage(p)
 
         try:
@@ -135,10 +164,9 @@ def search_pdf(path: str,
                 }
                 results.append(result)
     f.close()
-    print(f'All of {reader.numPages} pages checked in [{pdf[-1]}]')
+    logger.info(f'All of {reader.numPages} pages checked in [{pdf[-1]}]')
 
     return results
-
 
 def run_parallel_pool(func: str,
                       pdfs: List[str],
@@ -159,49 +187,57 @@ def run_parallel_pool(func: str,
 
 
 if __name__ == "__main__":
+    # Parameters definition
     keyword = 'cloud'
     folder = 'pdfs'
     # folder = '/media/p51/Data/Data/Library/_Computer_Science/'
     parallel_processing = True
 
-    # Measure time
-    t0 = time.time()
+    start = time.time()    # Measure time
+    logger = init_logger()  # Loger initialization
 
-    # List all available PDFs in specified folder
+    logger.info('Listing of all available PDFs in specified folder...')
     pdfs = [os.path.abspath(os.path.join(root, name))
             for root, dirs, files in os.walk(folder) for name in files if name.endswith('.pdf')]
+    logger.info('Listing of all available PDFs finished successfully!')
 
     if parallel_processing:
-        # PDFs checks
-        pdfs_to_remove = [item for sublist in run_parallel_pool('check_pdf', pdfs, keyword) for item in sublist]
+        logger.info('Running PDFs compatibility checks in parallelized manner...')
+        pdfs_to_remove = [item for sublist in run_parallel_pool('check_pdf', pdfs, keyword)
+                          for item in sublist]
+        logger.info('PDFs compatibility checks finished successfully!')
 
-        # Removal of incompatible PDFs
+        logger.info('Excluding incompatible PDFs!')
         pdfs_passed = [pdf for pdf in pdfs if not pdf in pdfs_to_remove or pdfs_to_remove.remove(pdf)]
 
-        # Search keywords in PDFs
-        results_flat = [item for sublist in run_parallel_pool('search_pdf', pdfs_passed, keyword) for item in sublist]
+        logger.info('Searching predefined keywords in PDFs in parallelized manner...')
+        results_flat = [item for sublist in run_parallel_pool('search_pdf', pdfs_passed, keyword)
+                        for item in sublist]
+        logger.info('Searching of predefined keywords finished successfully!')
     else:
-        # PDFs checks
-        pdfs_to_remove = [item for sublist in [check_pdf(path, keyword) for path in pdfs] for item in sublist]
+        logger.info('Running PDFs compatibility checks in serial manner...')
+        pdfs_to_remove = [item for sublist in [check_pdf(path, keyword) for path in pdfs]
+                          for item in sublist]
+        logger.info('PDFs compatibility checks finished successfully!')
 
-        # Removal of incompatible PDFs
+        logger.info('Excluding incompatible PDFs!')
         pdfs_passed = [pdf for pdf in pdfs if not pdf in pdfs_to_remove or pdfs_to_remove.remove(pdf)]
 
-        # Search keywords in PDFs
-        results_flat = [item for sublist in [search_pdf(keyword, path) for path in pdfs_passed] for item in sublist]
+        logger.info('Searching predefined keywords in PDFs in serial manner...')
+        results_flat = [item for sublist in [search_pdf(keyword, path) for path in pdfs_passed]
+                        for item in sublist]
+        logger.info('Searching of predefined keywords finished successfully!')
 
+    logger.info('Generating report and saving into HTML...')
     results_df = pd.DataFrame(results_flat)
-
-    # Generate and save HTML
     html = generate_html(results_df, keyword)
     open(f"{keyword}_search_results.html", "w").write(html)
-    print('Report successfully generated into HTML.')
+    logger.info('Report saved and successfully generated into HTML!')
 
-    webbrowser.open(f"{keyword}_search_results.html")
+    webbrowser.open(f"{keyword}_search_results.html")   # Opens HTML report automatically in the web browser
 
-    # Evaluate time
-    print(f"\n'{keyword}' Keyword Search in {len(pdfs_passed)} Books Complete!")
-    t1 = time.time() - t0
-    print("Time elapsed (s): ", round(t1, 0))
-    print("Time elapsed (min): ", round(t1/60, 1))
-    print("Time elapsed (h): ", round(t1/3600, 2))
+    # Runtime evaluation
+    logger.info(f"'{keyword}' Keyword Search in {len(pdfs_passed)} Books Complete!")
+    runtime = runtime_eval(start)
+    logger.info(f"Time Elapsed (h:min:s) - Total processing time:"
+                f" %d:%02d:%.1f" % (runtime[0], runtime[1], runtime[2]))
