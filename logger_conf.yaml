@@ -13,7 +13,7 @@ handlers:
 
     file:
       class: logging.FileHandler
-      filename: '{path}/logfile.log'
+      filename: '{path}'
       mode: 'w'
       formatter: default
 
