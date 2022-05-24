@@ -17,5 +17,7 @@ jankorinek/search_pdf:latest \
 --folder="$(pwd)" \
 --keyword='cluster'
 
+docker run --rm -it --name search_in_pdfs -e TZ=Europe/Prague -v ${PWD}:${PWD} jankorinek/search_pdf:latest --folder="${PWD}" --keyword="cluster"
+
 sudo docker compose up --build
 docker pull jankorinek/search_pdf:latest
