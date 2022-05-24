@@ -24,7 +24,8 @@ def init_logger(path: str) -> logging.RootLogger:
     # Initialize logger
     with open('logger_conf.yaml') as fin:
         config = yaml.load(fin, Loader=yaml.FullLoader)
-        config["handlers"]["file"]["filename"] = config["handlers"]["file"]["filename"].format(path=path)
+        config["handlers"]["file"]["filename"] = config["handlers"]["file"]["filename"]\
+            .format(path=os.path.join(path, 'logfile.log'))
     dictConfig(config)
     logger = logging.getLogger()
 
@@ -47,7 +48,7 @@ def repare_pdf(file: str):
 
     :param file: PDF location
     """
-    pdf = file.split('/')
+    pdf = re.split(r'\\|/', file)
     logger.info("Repairing following PDF: {0}".format(pdf[-1]))
     try:
         # Load and save PDF
@@ -109,7 +110,7 @@ def check_pdf(path: str,
     :return: Returns PDF location if it's not compatible with PyPDF2
     """
     for_removal = []
-    pdf = path.split('/')
+    pdf = re.split(r'\\|/', path)
 
     try:
         f = open(path, 'rb')
@@ -144,7 +145,7 @@ def search_pdf(path: str,
     # Reader initiation
     f = open(path, 'rb')
     reader = PyPDF2.PdfFileReader(f)
-    pdf = path.split('/')
+    pdf = re.split(r'\\|/', path)
     logger.info(f'Searching in [{pdf[-1]}]')
 
     results = []
@@ -253,10 +254,12 @@ if __name__ == "__main__":
     logger.info('Generating report and saving into HTML...')
     results_df = pd.DataFrame(results_flat)
     html = generate_html(results_df, keyword)
-    open(f"/{folder}/{keyword}_search_results.html", "w").write(html)
+    open(f"{os.path.join(folder, keyword)}_search_results.html", "w").write(html)
+    # open(f"/{folder}/{keyword}_search_results.html", "w").write(html)
     logger.info('Report saved and successfully generated into HTML!')
 
-    webbrowser.open(f"/{folder}/{keyword}_search_results.html")   # Opens HTML report automatically in the web browser
+    webbrowser.open(f"{os.path.join(folder, keyword)}_search_results.html")
+    # webbrowser.open(f"/{folder}/{keyword}_search_results.html")   # Opens HTML report automatically in the web browser
 
     # Runtime evaluation
     logger.info(f"'{keyword}' Keyword Search in {len(pdfs_passed)} Books Complete!")
