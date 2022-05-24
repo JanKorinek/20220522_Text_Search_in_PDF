@@ -6,6 +6,7 @@ import pikepdf
 import webbrowser
 import yaml
 import logging
+import argparse
 
 import pandas as pd
 import multiprocessing as mp
@@ -14,14 +15,16 @@ from logging.config import dictConfig
 from typing import List, Dict, Any
 
 
-def init_logger():
+def init_logger(path: str) -> logging.RootLogger:
     """Function responsible for logger creation.
 
+    :param path: Folder where logfile is stored.
     :return: Initialized logger
     """
     # Initialize logger
     with open('logger_conf.yaml') as fin:
         config = yaml.load(fin, Loader=yaml.FullLoader)
+        config["handlers"]["file"]["filename"] = config["handlers"]["file"]["filename"].format(path=path)
     dictConfig(config)
     logger = logging.getLogger()
 
@@ -185,16 +188,34 @@ def run_parallel_pool(func: str,
 
     return res
 
+def argparser() -> argparse.ArgumentParser:
+    """
+    Parsing input arguments for script run.
+    :return: Parser object
+    """
+    parser = argparse.ArgumentParser(__doc__)
+    parser.add_argument('--keyword', type=str, default='cloud', help='Keyword or phrase to search within PDFs. e.g')
+    parser.add_argument('--folder', type=str, default='/output', help='Target folder to search.')
+    parser.add_argument('--xCPU', type=bool, default=True, help='Turn off/on multiprocessing.')
+
+    return parser
+
 
 if __name__ == "__main__":
-    # Parameters definition
-    keyword = 'cloud'
-    folder = 'pdfs'
-    # folder = '/media/p51/Data/Data/Library/_Computer_Science/'
-    parallel_processing = True
+    args = argparser().parse_args()
+
+    # Parsing arguments
+    keyword = args.keyword
+    folder = args.folder
+    parallel_processing = args.xCPU
 
     start = time.time()    # Measure time
-    logger = init_logger()  # Loger initialization
+    logger = init_logger(folder)  # Loger initialization
+
+    # Logging arguments
+    logger.info(f'Keyword is: {keyword}')
+    logger.info(f'Folder is: {folder}')
+    logger.info(f'xCPU is: {parallel_processing}')
 
     logger.info('Listing of all available PDFs in specified folder...')
     pdfs = [os.path.abspath(os.path.join(root, name))
@@ -231,10 +252,10 @@ if __name__ == "__main__":
     logger.info('Generating report and saving into HTML...')
     results_df = pd.DataFrame(results_flat)
     html = generate_html(results_df, keyword)
-    open(f"{keyword}_search_results.html", "w").write(html)
+    open(f"/{folder}/{keyword}_search_results.html", "w").write(html)
     logger.info('Report saved and successfully generated into HTML!')
 
-    webbrowser.open(f"{keyword}_search_results.html")   # Opens HTML report automatically in the web browser
+    webbrowser.open(f"/{folder}/{keyword}_search_results.html")   # Opens HTML report automatically in the web browser
 
     # Runtime evaluation
     logger.info(f"'{keyword}' Keyword Search in {len(pdfs_passed)} Books Complete!")
