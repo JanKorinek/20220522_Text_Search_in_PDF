@@ -10,12 +10,12 @@ atlassian/confluence-server \
 
 sudo docker run \
 --rm -it \
---name searchtest \
+--name search_in_pdfs \
 -e TZ=Europe/Prague \
 -v "$(pwd)":"$(pwd)" \
-jankorinek/search_pdf:1.0.0 \
+jankorinek/search_pdf:latest \
 --folder="$(pwd)" \
 --keyword='cluster'
 
 sudo docker compose up --build
-docker pull jankorinek/search_pdf
+docker pull jankorinek/search_pdf:latest
