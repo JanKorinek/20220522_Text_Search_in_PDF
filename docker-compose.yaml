@@ -1,7 +1,7 @@
 version: "1.0.0"
 services:
   search-pdf:
-    image: jankorinek/search_pdf:1.0.0
+    image: jankorinek/search_pdf:latest
     environment:
       - TZ=Europe/Prague
     volumes:
