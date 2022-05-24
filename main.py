@@ -196,7 +196,8 @@ def argparser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(__doc__)
     parser.add_argument('--keyword', type=str, default='cloud', help='Keyword or phrase to search within PDFs. e.g')
     parser.add_argument('--folder', type=str, default='/output', help='Target folder to search.')
-    parser.add_argument('--xCPU', type=bool, default=True, help='Turn off/on multiprocessing.')
+    parser.add_argument('--xCPU', action=argparse.BooleanOptionalAction, default=True, help='Turn off/on '
+                                                                                             'multiprocessing.')
 
     return parser
 
@@ -245,7 +246,7 @@ if __name__ == "__main__":
         pdfs_passed = [pdf for pdf in pdfs if not pdf in pdfs_to_remove or pdfs_to_remove.remove(pdf)]
 
         logger.info('Searching predefined keywords in PDFs in serial manner...')
-        results_flat = [item for sublist in [search_pdf(keyword, path) for path in pdfs_passed]
+        results_flat = [item for sublist in [search_pdf(path, keyword) for path in pdfs_passed]
                         for item in sublist]
         logger.info('Searching of predefined keywords finished successfully!')
 
