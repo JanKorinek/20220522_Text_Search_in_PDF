@@ -255,11 +255,9 @@ if __name__ == "__main__":
     results_df = pd.DataFrame(results_flat)
     html = generate_html(results_df, keyword)
     open(f"{os.path.join(folder, keyword)}_search_results.html", "w").write(html)
-    # open(f"/{folder}/{keyword}_search_results.html", "w").write(html)
     logger.info('Report saved and successfully generated into HTML!')
 
     webbrowser.open(f"{os.path.join(folder, keyword)}_search_results.html")
-    # webbrowser.open(f"/{folder}/{keyword}_search_results.html")   # Opens HTML report automatically in the web browser
 
     # Runtime evaluation
     logger.info(f"'{keyword}' Keyword Search in {len(pdfs_passed)} Books Complete!")
