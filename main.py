@@ -1,6 +1,4 @@
-import time
-import re
-import os
+import time, re, os, sys
 import PyPDF2
 import pikepdf
 import webbrowser
@@ -109,6 +107,8 @@ def check_pdf(path: str,
     :param keyword: Keyword to search (in this case generalized placeholder)
     :return: Returns PDF location if it's not compatible with PyPDF2
     """
+    my_os=sys.platform  # Check OS
+
     for_removal = []
     pdf = re.split(r'\\|/', path)
 
@@ -125,10 +125,12 @@ def check_pdf(path: str,
         page = reader.getPage(0)
         text = page.extractText()
         f.close()
-        logger.info(f'All Checks Passed for [{pdf[-1]}]')
+        if not 'win' in my_os:
+            logger.info(f'All Checks Passed for [{pdf[-1]}]')
     except:
         for_removal.append(path)
-        logger.info(f'Checks Failed for [{pdf[-1]}]. PDF marked for removal from the list.')
+        if not 'win' in my_os:
+            logger.info(f'Checks Failed for [{pdf[-1]}]. PDF marked for removal from the list.')
 
     return for_removal
 
@@ -142,15 +144,20 @@ def search_pdf(path: str,
     :param keyword: Keyword to search within PDF
     :return: Matched keyword file, page, sentence and file path
     """
+    my_os = sys.platform  # Check OS
+
     # Reader initiation
     f = open(path, 'rb')
     reader = PyPDF2.PdfFileReader(f)
     pdf = re.split(r'\\|/', path)
-    logger.info(f'Searching in [{pdf[-1]}]')
+    if not 'win' in my_os:
+        logger.info(f'Searching in [{pdf[-1]}]')
 
     results = []
     for p in range(reader.numPages):
-        logger.info(f'Checking page {p} in [{pdf[-1]}]')
+        if not 'win' in my_os:
+            logger.info(f'Checking page {p} in [{pdf[-1]}]')
+
         page = reader.getPage(p)
 
         try:
@@ -168,7 +175,8 @@ def search_pdf(path: str,
                 }
                 results.append(result)
     f.close()
-    logger.info(f'All of {reader.numPages} pages checked in [{pdf[-1]}]')
+    if not 'win' in my_os:
+        logger.info(f'All of {reader.numPages} pages checked in [{pdf[-1]}]')
 
     return results
 
@@ -254,7 +262,7 @@ if __name__ == "__main__":
     logger.info('Generating report and saving into HTML...')
     results_df = pd.DataFrame(results_flat)
     html = generate_html(results_df, keyword)
-    open(f"{os.path.join(folder, keyword)}_search_results.html", "w").write(html)
+    open(f"{os.path.join(folder, keyword)}_search_results.html", "w", encoding="utf-8").write(html)
     logger.info('Report saved and successfully generated into HTML!')
 
     webbrowser.open(f"{os.path.join(folder, keyword)}_search_results.html")
