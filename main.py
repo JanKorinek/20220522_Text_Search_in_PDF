@@ -46,8 +46,11 @@ def repare_pdf(file: str):
 
     :param file: PDF location
     """
+    my_os = sys.platform  # Check OS
+
     pdf = re.split(r'\\|/', file)
-    logger.info("Repairing following PDF: {0}".format(pdf[-1]))
+    if not 'win' in my_os:
+        logger.info("Repairing following PDF: {0}".format(pdf[-1]))
     try:
         # Load and save PDF
         pdf = pikepdf.Pdf.open(file)
@@ -56,7 +59,8 @@ def repare_pdf(file: str):
         os.unlink(file)
         os.rename(file + '.tmp', file)
     except:
-        logger.info(f'Cannot repair following PDF {[pdf[-1]]}')
+        if not 'win' in my_os:
+            logger.info(f'Cannot repair following PDF {[pdf[-1]]}')
 
 
 def generate_html(dataframe: pd.DataFrame, *args) -> str:
