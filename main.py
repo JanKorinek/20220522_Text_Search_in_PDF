@@ -262,10 +262,12 @@ if __name__ == "__main__":
     logger.info('Generating report and saving into HTML...')
     results_df = pd.DataFrame(results_flat)
     html = generate_html(results_df, keyword)
-    open(f"{os.path.join(folder, keyword)}_search_results.html", "w", encoding="utf-8").write(html)
+
+    name = keyword.replace('|', '-')
+    open(f"{os.path.join(folder, name)}_search_results.html", "w", encoding="utf-8").write(html)
     logger.info('Report saved and successfully generated into HTML!')
 
-    webbrowser.open(f"{os.path.join(folder, keyword)}_search_results.html")
+    webbrowser.open(f"{os.path.join(folder, name)}_search_results.html")
 
     # Runtime evaluation
     logger.info(f"'{keyword}' Keyword Search in {len(pdfs_passed)} Books Complete!")
