@@ -22,7 +22,7 @@ def init_logger(path: str) -> logging.RootLogger:
     # Initialize logger
     with open('logger_conf.yaml') as fin:
         config = yaml.load(fin, Loader=yaml.FullLoader)
-        config["handlers"]["file"]["filename"] = config["handlers"]["file"]["filename"]\
+        config["handlers"]["file"]["filename"] = config["handlers"]["file"]["filename"] \
             .format(path=os.path.join(path, 'logfile.log'))
     dictConfig(config)
     logger = logging.getLogger()
@@ -39,7 +39,7 @@ def runtime_eval(start: float) -> tuple[Any, Any, Any]:
     m, s = divmod(time.time() - start, 60)
     h, m = divmod(m, 60)
 
-    return (h, m, round(s,0))
+    return (h, m, round(s, 0))
 
 def repare_pdf(file: str):
     """Repair PDF by loading and saving via pikepdf library.
@@ -111,7 +111,7 @@ def check_pdf(path: str,
     :param keyword: Keyword to search (in this case generalized placeholder)
     :return: Returns PDF location if it's not compatible with PyPDF2
     """
-    my_os=sys.platform  # Check OS
+    my_os = sys.platform  # Check OS
 
     for_removal = []
     pdf = re.split(r'\\|/', path)
@@ -210,7 +210,7 @@ def argparser() -> argparse.ArgumentParser:
     parser.add_argument('--keyword', type=str, default='cloud', help='Keyword or phrase to search within PDFs. e.g')
     parser.add_argument('--folder', type=str, default='/output', help='Target folder to search.')
     parser.add_argument('--xCPU', action=argparse.BooleanOptionalAction, default=True, help='Turn off/on '
-                                                                                             'multiprocessing.')
+                                                                                            'multiprocessing.')
 
     return parser
 
@@ -223,7 +223,7 @@ if __name__ == "__main__":
     folder = args.folder
     parallel_processing = args.xCPU
 
-    start = time.time()    # Measure time
+    start = time.time()  # Measure time
     logger = init_logger(folder)  # Loger initialization
 
     # Logging arguments
@@ -267,8 +267,12 @@ if __name__ == "__main__":
     results_df = pd.DataFrame(results_flat)
     html = generate_html(results_df, keyword)
 
-    if '/' in keyword: keyword.replace('/', '')
-    name = keyword.replace('|', '-')
+    # Removing mathematical characters from 'keyword' variable
+    if '/' in keyword:
+        name = keyword.replace('/', '').replace('|', '-')
+    else:
+        name = keyword.replace('|', '-')
+
     open(f"{os.path.join(folder, name)}_search_results.html", "w", encoding="utf-8").write(html)
     logger.info('Report saved and successfully generated into HTML!')
 
