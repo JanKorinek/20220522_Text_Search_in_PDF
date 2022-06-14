@@ -267,6 +267,7 @@ if __name__ == "__main__":
     results_df = pd.DataFrame(results_flat)
     html = generate_html(results_df, keyword)
 
+    if '/' in keyword: keyword.replace('/', '')
     name = keyword.replace('|', '-')
     open(f"{os.path.join(folder, name)}_search_results.html", "w", encoding="utf-8").write(html)
     logger.info('Report saved and successfully generated into HTML!')
