@@ -31,7 +31,7 @@ Code responsible for model keywords search is in `main.py` and once it runs, it 
 10. Finalizes log with processing times
 
 ## Usage
-You can use the tool by downloading it from the GitHub repository and then running the Python script or you can run Docker image. Below you can find a guide on how to do it both ways. 
+You can use the tool by downloading it from the *GitHub* repository and then running the *Python* script or you can run *Docker* image. Below you can find a guide on how to do it both ways. 
 
 ### 1. Run Python Script
 * Clone the repository below:
@@ -40,7 +40,7 @@ You can use the tool by downloading it from the GitHub repository and then runni
 
 `$ cd 20220522_Text_Search_in_PDF`
 
-* Setup virtual environment in Anaconda, Pycharm or in IDE you're currently using.
+* Setup virtual environment in *Anaconda*, *Pycharm* or in IDE you're currently using.
 
 * Install libraries specified in `requirements.txt`
 
@@ -50,7 +50,7 @@ You can use the tool by downloading it from the GitHub repository and then runni
     * `--xCPU` - Enable/disable multiprocessing. *(Default True)*
 
 ### 2. Run Docker Image
-* To use the tool via Docker, open the terminal and go into desired folder containing PDFs.
+* To use the tool via *Docker*, open the terminal and go into desired folder containing PDFs.
 
 `$ cd <pdf_folder>`
 
