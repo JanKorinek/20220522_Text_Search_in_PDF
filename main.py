@@ -207,15 +207,17 @@ def argparser() -> argparse.ArgumentParser:
     :return: Parser object
     """
     parser = argparse.ArgumentParser(__doc__)
-    parser.add_argument('--keyword', type=str, default='cloud', help='Keyword or phrase to search within PDFs. e.g')
+    parser.add_argument('--keyword', type=str, default='cloud', help='Keyword or phrase to search within PDFs.')
     parser.add_argument('--folder', type=str, default='/output', help='Target folder to search.')
-    parser.add_argument('--xCPU', action=argparse.BooleanOptionalAction, default=True, help='Turn off/on '
+    parser.add_argument('--xCPU', action=argparse.BooleanOptionalAction, default=True, help='Enable/disable '
                                                                                              'multiprocessing.')
 
     return parser
 
 
 if __name__ == "__main__":
+    start = time.time()    # Measure time
+
     args = argparser().parse_args()
 
     # Parsing arguments
@@ -223,7 +225,6 @@ if __name__ == "__main__":
     folder = args.folder
     parallel_processing = args.xCPU
 
-    start = time.time()    # Measure time
     logger = init_logger(folder)  # Loger initialization
 
     # Logging arguments
